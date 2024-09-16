@@ -111,12 +111,17 @@ $(document).ready(function(){
         btnrequest.value = matchid
         btnrequest.style ="background-color:transparent; border:none;";
         connecteduser.addEventListener('click',function(evt){
+            let confirmWindow = window.confirm(`Would you like to accept a request from ${username}`);
+            if(confirmWindow){
             $(".lobbybtn").hide();
             $(".match-parent").hide()
               socket.emit("join",matchid);
               $(`.${username}`).remove();
               gameRequestCounter -=1
               $(".gamerequestcount").text(gameRequestCounter);
+            }
+           
+ 
 
         });
         connecteduser.className =`text-center  ${username}`
@@ -312,6 +317,7 @@ socket.on("updtmatch",(matchids,status)=>{
                 socket.emit("possible",location,match);
                 socket.emit("isFinished",match);
                 $this.attr('style','background-color:red');
+                
                 piece = $this.text();
             }
             else if(chose != null && chose == location){
@@ -347,6 +353,15 @@ socket.on("updtmatch",(matchids,status)=>{
                 }
 
                 else{
+                    //fixed issue wth text change after user tries to move if move location is invaid
+                    
+                    for(let r=0;r<possibleChose.length;r++){
+                        if(possibleChose[r].toLowerCase() == move.toLowerCase()){
+                            $('.playerOpp').text("Waiting for opponent...")
+                        }
+                    }
+
+                   
                     socket.emit("moves",{start:chose,last:move,piece:piece,condition:false},match);
                    
                     for(let r=0;r<possibleChose.length;r++){
@@ -431,15 +446,31 @@ socket.on("updtmatch",(matchids,status)=>{
 
     });
 
-    socket.on("switch",(turn)=>{
-        current = turn;
+    socket.on("switch",(turn,computer)=>{
 
-        if(current == color){
-            $('.playerOpp').text("Your turn")
+        try{
+            if(computer =="computer"){
+                
+                    $('.playerOpp').text("Waiting for opponent...");
+                    current = 'black';    
+            }
+            else{
+                current = turn;
+
+                if(current == color){
+                    $('.playerOpp').text("Your turn")
+                }
+                else{
+                    $('.playerOpp').text("Waiting for opponent...")
+                }
+            }
         }
-        else{
-            $('.playerOpp').text("Waiting for opponent...")
+
+        catch{
+            console.log("no")
+
         }
+      
     });
 
  
@@ -473,16 +504,30 @@ socket.on("updtmatch",(matchids,status)=>{
     userWins = Number($('#userWins').text().replace("wins",""));
     userLoses = Number($('#userLoses').text().replace("loses",""));
 
-   if(color === win_color){
+   if(color === win_color && result['computer'] == false){
     $('#userWins').text(`wins ${userWins+1}`)
        result["message"] = "You win but, that doesn't mean there isn't a challenge out there for you! ";
        result["header"] = "You have won!";
    }
-   else{
+   else if(color != win_color && result['computer'] == false){
     $('#userLoses').text(`loses ${userLoses+1}`)
        result["message"] = "You lose but, You're getting better everyday!"
        result["header"] = "You have lost!";
    }
+
+   if(color === win_color && result['computer'] == true){
+    $('#userWins').text(`wins ${userWins+1}`)
+       result["message"] = "You win but, that doesn't mean you shouldn't continue to practice ";
+       result["header"] = "You have won!";
+   }
+   else if(color != win_color && result['computer'] == true){
+    $('#userLoses').text(`loses ${userLoses+1}`)
+       result["message"] = "You lose but keep practing, you're getting better everyday!"
+       result["header"] = "You have lost!";
+   }
+
+   
+  
 
    $('.userGameData').text(JSON.stringify(result))
    $('.userGameStatus').text(result["header"])
@@ -897,10 +942,32 @@ $('td').click(function(){
         socket.emit("isFinished",match);
 
         if(moves.piece == undefined){
+            
+            setTimeout(function(){
+                $('.playerOpp').text("Your turn")
+                current = "white";
+            //if the move.pieces is undefined that means computer play is active and therfore it has to select the sqaure and move it on the interface
             moves.piece = $(`.${moves.start.toLowerCase()}`).text();
             $(".moves").prepend('<p>'+moves.piece+ ' moved from '+ moves.start+" to "+moves.last+'</p>');
+
             $("."+moves.start.toLowerCase()).text('');
             $("."+moves.last.toLowerCase()).text(moves.piece); 
+            //leave off here idnentify the reason for extra queen for computer and establish special moves for computers.
+            //04/07/22
+
+            if(moves.start.toUpperCase().includes('2') && moves.piece ==  "♟"){
+                  $("."+moves.start.toLowerCase()).text('');
+                  $("."+moves.last.toLowerCase()).text('♛'); 
+            }
+            
+            
+          if(moves.piece == '♚' && moves.last.toLowerCase() == "g8" && moves.start.toLowerCase() == "e8"){
+                $('.g8').text('♚');
+                $('.f8').text('♜');
+                $('.h8').text('');
+                $('.e8').text('');
+            }
+            },3000)
 
         }
         else{

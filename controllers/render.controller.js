@@ -35,7 +35,13 @@ function renderResults(req,res){
     res.render('results',{data:req.params.data});
 }
 function renderSurvey(req,res){
-  res.render('survey',{'SurveyPageMessage':'','SurveyErrorMessage': ''});
+    if(!req.session.status){
+        res.redirect('login')
+   }
+   else{
+       res.render('survey',{'SurveyPageMessage':'','SurveyErrorMessage': ''});
+   }
+  
 }
 function renderResearch(req,res){
     const db = firebase.getDatabase(firebase.firebaseApp)
@@ -44,7 +50,6 @@ function renderResearch(req,res){
     firebase.get(firebase.child(referenceCount, '/surveys')).then((snapshot) => {
         if (snapshot.exists()) {
             let data = snapshot.val();
-            console.log(data);
             let keys = Object.keys(data);
             let criTotal = 0;
             let male = 0;
@@ -73,9 +78,6 @@ function renderResearch(req,res){
                 else{
                     non_binary +=1;
                 }
-
-                }    
-
             }
             const researchObj = {
                 'memory':memTotal,
@@ -93,15 +95,19 @@ function renderResearch(req,res){
             }
             res.render("research",{"data":researchObj});
             res.end();
-        } else {
+           }
+         else{
             res.render("research",{"data":{}});
             res.end();
-        }
+         }
+         
     }).catch((error) => {
         res.end(error)
     });
-    }
-    
+   }
+  
+
+      
 function renderRegister(req,res){
     res.render('register',{'RegisterErrorMessage':''});
 }
